@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JObfuscator - Advanced Luau Obfuscator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2e;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #2e2e3e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-size: 14px;
+            background: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        button {
+            background: #6200ea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease-in-out;
+        }
+        button:hover {
+            background: #3700b3;
+        }
+        button:active {
+            transform: scale(0.9);
+        }
+        pre {
+            background: #282c34;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #copyMessage {
+            color: #4caf50;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>JObfuscator - Advanced Luau Obfuscator</h2>
+        <textarea id="luauCode" placeholder="Enter your Luau code here..."></textarea>
+        <br>
+        <button onclick="obfuscateCode()">Obfuscate</button>
+        <button onclick="copyToClipboard()">Copy</button>
+        <h3>Obfuscated Output:</h3>
+        <pre><code id="output" class="language-lua"></code></pre>
+        <p id="copyMessage">Copied!</p>
+    </div>
+
+    <script>
+        function obfuscateCode() {
+            let code = document.getElementById("luauCode").value.trim();
+            if (!code) {
+                alert("Enter some Luau code first!");
+                return;
+            }
+            let varMap = {}; 
+            let obfuscated = code.replace(/local\s+([a-zA-Z_]\w*)/g, (_, v) => {
+                let randVar = "_" + Math.random().toString(36).substr(2, 8);
+                varMap[v] = randVar;
+                return `local ${randVar}`;
+            });
+            for (let original in varMap) {
+                let newVar = varMap[original];
+                let regex = new RegExp(`\\b${original}\\b`, "g");
+                obfuscated = obfuscated.replace(regex, newVar);
+            }
+            obfuscated = obfuscated.replace(/\b(\d+)\b/g, (_, n) => {
+                let r = Math.floor(Math.random() * 10) + 1;
+                return `(${n} + ${r} - ${r})`;
+            });
+            obfuscated = obfuscated.replace(/(["'])(.*?)\1/g, (_, q, str) => {
+                return `(${str.split('').map(c => `string.char(${c.charCodeAt(0)})`).join('..')})`;
+            });
+            let fakeLoopVar = "_L" + Math.random().toString(36).substr(2, 6);
+            obfuscated = `local ${fakeLoopVar} = 0; while ${fakeLoopVar} < 1 do ${fakeLoopVar} = ${fakeLoopVar} + 1; ${obfuscated} end`;
+            let watermark = `-- Obfuscated By JObfuscator V1.1.1 [https://sites.google.com/view/jobfuscate/]\n`;
+            obfuscated = watermark + obfuscated;
+            document.getElementById("output").textContent = obfuscated;
+            Prism.highlightElement(document.getElementById("output"));
+        }
+
+        function copyToClipboard() {
+            let output = document.getElementById("output").textContent;
+            if (!output) return;
+            let tempTextArea = document.createElement("textarea");
+            tempTextArea.value = output;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempTextArea);
+            let message = document.getElementById("copyMessage");
+            message.style.display = "block";
+            setTimeout(() => message.style.display = "none", 2000);
+        }
+    </script>
+</body>
+</html>
