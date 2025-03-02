@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JObfuscator - Advanced Luau Obfuscator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; height: 150px; font-size: 14px; }
+        button { padding: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+    <h2>JObfuscator - Advanced Luau Obfuscator</h2>
+    <textarea id="luauCode" placeholder="print('Hello World!')"></textarea>
+    <br>
+    <button onclick="obfuscateCode()">Obfuscate</button>
+    <h3>Obfuscated Output:</h3>
+    <pre id="output"></pre>
+
+    <script>
+        function obfuscateCode() {
+            let code = document.getElementById("luauCode").value.trim();
+            if (!code) {
+                alert("Enter some Luau code first!");
+                return;
+            }
+
+            let varMap = {}; 
+            let obfuscated = code
+                .replace(/local\s+([a-zA-Z_]\w*)/g, (_, v) => {
+                    let randVar = "_" + Math.random().toString(36).substr(2, 6);
+                    varMap[v] = randVar;
+                    return `local ${randVar}`;
+                })
+                .replace(/\b(\d+)\b/g, (_, n) => `(${n} + ${Math.floor(Math.random() * 5) - 2} - ${Math.floor(Math.random() * 5) - 2})`)
+                .replace(/(["'])(.*?)\1/g, (_, q, str) => {
+                    let encoded = str.split('').map(c => "\\" + c.charCodeAt(0)).join('');
+                    return `${q}${encoded}${q}`;
+                })
+                .replace(/\n+/g, " ")
+                .replace(/(\w+)\s*=\s*(.+?)(?=\s|$)/g, (_, v, n) => {
+                    return `${v}; do local tempVar = ${n}; ${v} = tempVar; end`;
+                });
+
+            for (let original in varMap) {
+                let newVar = varMap[original];
+                let regex = new RegExp(`\\b${original}\\b`, "g");
+                obfuscated = obfuscated.replace(regex, newVar);
+            }
+
+            let watermark = `print("Obfuscated By JObfuscator , https://sites.google.com/view/jobfuscate") `;
+            obfuscated = watermark + obfuscated;
+
+            document.getElementById("output").innerText = obfuscated;
+        }
+    </script>
+
+</body>
+</html>
