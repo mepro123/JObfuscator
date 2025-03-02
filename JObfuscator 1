@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luau Obfuscator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; height: 150px; font-size: 14px; }
+        button { padding: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h2>Luau Code Obfuscator</h2>
+    <textarea id="luauCode" placeholder="Enter your Luau script here..."></textarea>
+    <br>
+    <button onclick="obfuscateCode()">Obfuscate</button>
+    <h3>Obfuscated Output:</h3>
+    <pre id="output"></pre>
+
+    <script>
+        function obfuscateCode() {
+            let code = document.getElementById("luauCode").value.trim();
+            if (!code) {
+                alert("Enter some Luau code first!");
+                return;
+            }
+
+            let varMap = {}; // Store renamed variables
+            let obfuscated = code
+                .replace(/local\s+([a-zA-Z_]\w*)/g, (_, v) => {
+                    let newVar = randomVar();
+                    varMap[v] = newVar;
+                    return `local ${newVar}`;
+                }) // Rename variables
+                .replace(/print/g, "_pRnt") // Hide print function
+                .replace(/\b(\d+)\b/g, (_, n) => mathObfuscate(n)); // Turn numbers into fake math
+
+            // Add junk variables
+            let junkVars = "";
+            for (let i = 0; i < 5; i++) {
+                let fakeVar = randomVar();
+                junkVars += `local ${fakeVar} = ${mathObfuscate(Math.floor(Math.random() * 100))}\n`;
+            }
+
+            // Replace variable names correctly
+            for (let original in varMap) {
+                let newVar = varMap[original];
+                let regex = new RegExp(`\\b${original}\\b`, "g");
+                obfuscated = obfuscated.replace(regex, newVar);
+            }
+
+            let wrapper = `local function _pRnt(...) print(...) end\n`;
+            wrapper += junkVars; // Inject fake variables
+            wrapper += obfuscated;
+
+            document.getElementById("output").innerText = wrapper;
+        }
+
+        function randomVar() {
+            let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            let randomStr = "";
+            for (let i = 0; i < 8; i++) {
+                randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return "_" + randomStr;
+        }
+
+        function mathObfuscate(num) {
+            num = parseInt(num);
+            let a = Math.floor(Math.random() * 10) + 1;
+            let b = num - a;
+            return `(${a} + ${b})`;
+        }
+    </script>
+
+</body>
+</html>
