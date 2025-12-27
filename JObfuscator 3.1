@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JObfuscator - Advanced Luau Obfuscator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/mode/lua/lua.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/hint/lua-hint.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e2e; color: #ffffff; text-align: center; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #2e2e3e; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1); }
+        .CodeMirror { border: 1px solid #555; border-radius: 10px; background: #282c34 !important; color: #f8f8f2 !important; font-size: 14px; }
+        .CodeMirror-gutters { background: #282c34 !important; border-right: 1px solid #555; }
+        .CodeMirror-linenumber { color: #5c6370 !important; }
+        .CodeMirror-cursor { border-left: 2px solid #ffffff !important; }
+        .CodeMirror pre { background: none !important; color: inherit !important; }
+        .cm-keyword { color: #c678dd !important; }
+        .cm-string { color: #98c379 !important; }
+        .cm-comment { color: #5c6370 !important; }
+        .cm-number { color: #d19a66 !important; }
+        .cm-variable { color: #ffffff !important; }
+        button { background: #6200ea; color: white; border: none; padding: 10px 15px; margin: 10px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: transform 0.2s ease-in-out; width: 100px; height: 40px; }
+        button:hover { width: 113px; height: 55px; }
+        button:active { width: 100px; height: 40px; }
+        pre { background: #282c34; padding: 10px; border-radius: 5px; text-align: left; white-space: pre-wrap; word-wrap: break-word; }
+        #copyMessage { color: #4caf50; display: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>JObfuscator - Advanced Luau Obfuscator</h2>
+    <textarea id="luauCode"></textarea><br>
+    <button onclick="downloadObfuscatedCode()">Obfuscate</button>
+    <h3>Obfuscated Output:</h3>
+    <pre><code id="output" class="language-lua"></code></pre>
+    <p id="copyMessage">Copied!</p>
+</div>
+<script>
+const editor = CodeMirror.fromTextArea(document.getElementById("luauCode"), { mode: "lua", theme: "tomorrow-night-bright", lineNumbers: true, extraKeys: { "Ctrl-Space": "autocomplete" }});
+
+function toLongAddition(c) {
+    const val = c.charCodeAt(0); // Get the ASCII value
+    let n = val;
+    let addition = [];
+    while (n > 0) {
+        addition.push(1);
+        n--;
+    }
+    return addition;
+}
+
+function generateObfuscatedCode() {
+    const code = editor.getValue().trim();
+    if (!code) return null;
+    const varMap = {}, rand = () => '_' + Math.random().toString(36).substring(2, 10);
+
+    // Obfuscate variable names
+    let obf = code.replace(/local\s+([a-zA-Z_]\w*)/g, (_, name) => { const r = rand(); varMap[name] = r; return `local ${r}` });
+    for (let orig in varMap) obf = obf.replace(new RegExp(`\\b${orig}\\b`, 'g'), varMap[orig]);
+
+    // Convert string characters to their long ASCII expression
+    obf = obf.replace(/(["'])(.*?)\1/g, (_, q, s) => {
+        const longAdditions = [...s].map(c => {
+            const addition = toLongAddition(c);
+            return `string.char(${addition.join('+')})`; // Use string.char to reconstruct
+        });
+        return longAdditions.join('..');
+    });
+
+    // Wrapper function to reconstruct strings using string.char()
+    const payload = `local function unstr(t)local s='' for i=1,#t do s=s..string.char(t[i])end return s end local _junk=${Math.random()*100|0} for i=1,5 do _junk=_junk+i end local _ctrl=0 while _ctrl<1 do _ctrl=_ctrl+1 ${obf} end`;
+
+    return `-- Obfuscated By JObfuscator V3.0\n${payload.replace(/\n|\r/g, '').replace(/\s+/g,' ')}`;
+}
+
+function downloadObfuscatedCode() {
+    const code = generateObfuscatedCode();
+    if (!code) return alert("Enter some Luau code first!");
+    const blob = new Blob([code], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'obfuscated.lua';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Optionally clear the output text after downloading
+    document.getElementById("output").textContent = '';
+    
+    // Trigger the Prism highlighting (won't display due to output being empty)
+    Prism.highlightElement(document.getElementById("output"));
+}
+</script>
+</body>
+</html>
